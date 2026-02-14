@@ -1,84 +1,88 @@
-
-pipeline{
+pipeline {
     agent any
-    
-    environment{
-        AWS_REGION = "eu-north-1"
-        S3_BUCKET = "fbdsample"
-        CLOUDFRONT_DISTRIBUTION_ID = "E2DPN75SRNM1P4"
+
+    environment {
+        AWS_REGION = "us-east-1"
+        S3_BUCKET = "mern-stack46474"
+        CLOUDFRONT_DISTRIBUTION_ID = "E8S8NZOP28T7T"
     }
-    
+
     options {
         timestamps()
     }
-    
-    stages{
-        
-        stage('checkout code') {
+
+    stages {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main',
-                credentialsId: 'github-token-creds',
-                url: 'https://github.com/greeshmagp19-creator/fullstack_project.git'
+                    credentialsId: 'frontend-credentials',
+                    url: 'https://github.com/kaviyarashugayu1997-maker/fullstack_project.git'
             }
         }
-        
-        stage('check node & NPM') {
-            steps{
-                sh '''
-                  node -v
-                  npm -v
-                '''
-            }
-        }
-        
-        stage ('build') {
+
+        stage('Install Dependencies') {
             steps {
-                dir('frontend'){
-                sh 'npm install'
-                sh 'npm run build'
+                dir('frontend') {
+                    echo "Installing NPM packages..."
+                    sh 'npm install'
                 }
             }
         }
-        stage ('verify build output') {
+
+        stage('Build Frontend') {
             steps {
-                 sh 'ls -la frontend/build'
+                dir('frontend') {
+                    echo "Starting Production Build..."
+                    sh 'CI=false npm run build'
+                }
             }
         }
-        stage('deploy to s3'){
-            
+
+        stage('Verify Build Output') {
             steps {
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
+                dir('frontend') {
+                    sh 'ls -la build'
+                }
+            }
+        }
+
+        stage('Deploy to S3') {
+            steps {
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'mern-stack09383'
+                ]]) {
                     dir('frontend') {
-                        
-                        sh 'aws s3 sync build/ s3://${S3_BUCKET}/ --delete'
-                    
+                        echo "Syncing build folder to S3 bucket: ${S3_BUCKET}"
+                        sh "aws s3 sync build/ s3://${S3_BUCKET}/ --delete --region ${AWS_REGION}"
                     }
                 }
-                
             }
         }
-        stage('invalidate cloudfront'){
+
+        stage('Invalidate CloudFront Cache') {
             when {
-                expression { env.CLOUDFRONT_DISTRIBUTION_ID = "E2DPN75SRNM1P4" }
+                expression { env.CLOUDFRONT_DISTRIBUTION_ID?.trim() }
             }
             steps {
-                withAWS(credentials: 'aws-credentials', region: "${AWS_REGION}") {
-                    sh '''aws cloudfront create-invalidation \\
-                        --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} \\
-                        --paths "/*"'''
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'mern-stack09383'
+                ]]) {
+                    echo "Invalidating CloudFront cache for: ${CLOUDFRONT_DISTRIBUTION_ID}"
+                    sh "aws cloudfront create-invalidation --distribution-id ${CLOUDFRONT_DISTRIBUTION_ID} --paths '/*'"
                 }
-                
             }
-            
         }
-            
     }
+
     post {
         success {
-            echo " Frontend deployed successfully!"
+            echo "✅ Deployment Successful! Your app is live."
         }
         failure {
-            echo " Pipeline failed. Check logs."
+            echo "❌ Pipeline failed. Check the logs for build or permission errors."
         }
     }
 }
+
