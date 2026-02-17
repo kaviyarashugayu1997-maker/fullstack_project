@@ -19,21 +19,21 @@ pipeline {
             steps {
                 sshagent(['mernstack-backend']) {
                     sh """
-                    shh -o stricthostkeyhecking=no ubuntu@${EC2_IP} 
+                    ssh -o stricthostkeyhecking=no ubuntu@${EC2_IP} 
                     << 'EOF'
                         set -e
                         mkdir -p /home/ubuntu/apps
                         cd /home/ubuntu/apps
 
 
-                        if [-d "fullstack_project"] && [!  "fullstack_project/.git"];
+                        if [ !-d "fullstack_project" ] && [ ! -d "fullstack_project/.git" ]; then
                            rm -rf fullstack_project
-                        if
+                        fi
 
 
-                        if [ -d "fullstack_project" ]; then
+                        if [ ! -d "fullstack_project" ]; then
                         https://github.com/kaviyarashugayu1997-maker/fullstack_project.git
-                        if
+                        fi
 
                         cd fullstack_project
                         git fetch origin
@@ -51,7 +51,7 @@ pipeline {
                         docker build -t backend-image .
 
 
-                        docker run -d -p 5001:5000 --name myapp \
+                        docker run -d -p 5000:5000 --name myapp 
                        
                     
                 }
@@ -67,4 +67,4 @@ pipeline {
             echo " DEPLOYMENT FAILED"
         }
     }
-}
+
