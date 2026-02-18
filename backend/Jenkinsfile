@@ -8,31 +8,27 @@ pipeline {
     stages {
         stage('checkout code') {
             steps {
-
                 git branch: 'main',
-                credentialsId: 'mern-stacks09233git',
-                url: 'https://github.com/kaviyarashugayu1997-maker/fullstack_project.git'
+                    credentialsId: 'mern-stacks09233git',
+                    url: 'https://github.com/kaviyarashugayu1997-maker/fullstack_project.git'
             }
         }
 
         stage('Deploy to EC2') {
             steps {
-                sshagent(['mernstack-backend']) {
+                shhagent(['mernstack-backend']) {
                     sh """
-                    ssh -o stricthostkeyhecking=no ubuntu@${EC2_IP} 
-                    << 'EOF'
+                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << EOF
                         set -e
                         mkdir -p /home/ubuntu/apps
                         cd /home/ubuntu/apps
 
-
-                        if [ !-d "fullstack_project" ] && [ ! -d "fullstack_project/.git" ]; then
+                        if [-d "fullstack_project"] && [ -d "fullstack_project/.git" ]; 
                            rm -rf fullstack_project
                         fi
 
-
                         if [ ! -d "fullstack_project" ]; then
-                        https://github.com/kaviyarashugayu1997-maker/fullstack_project.git
+                           git clone https://github.com/kaviyarashugayu1997-maker/fullstack_project.git
                         fi
 
                         cd fullstack_project
@@ -42,29 +38,25 @@ pipeline {
 
                         cd backend
 
-                        
-                         docker stop myapp || true
+                        docker stop myapp || true
                         docker rm myapp || true
                         docker rmi backend-image || true
 
-
                         docker build -t backend-image .
-
-
-                        docker run -d -p 5000:5000 --name myapp 
-                       
-                    
+                        docker run -d -p 5001:5000 --name myapp backend-image
+EOF
+                    """
                 }
             }
         }
-    }
+    
 
     post {
         success {
-            echo " DEPLOYMENT SUCCESSFUL"
+            echo "DEPLOYMENT SUCCESSFUL"
         }
         failure {
-            echo " DEPLOYMENT FAILED"
+            echo "DEPLOYMENT FAILED"
         }
     }
-
+}
