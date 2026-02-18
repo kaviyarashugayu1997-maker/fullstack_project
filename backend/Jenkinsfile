@@ -1,64 +1,28 @@
 pipeline {
-    agent any
-
-    environment {
-        EC2_IP = "44.216.122.26"
-    }
-
-    stages {
-        stage('checkout code') {
-            steps {
-                git branch: 'main',
-                    credentialsId: 'mern-stacks09233git',
-                    url: 'https://github.com/kaviyarashugayu1997-maker/fullstack_project.git'
-            }
-        }
-
-        stage('Deploy to EC2') {
-            steps {
-                sshagent(['mernstack-backend']) {
-                    sh """
-                    ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << EOF
-                        set -e
-                        mkdir -p /home/ubuntu/apps
-                        cd /home/ubuntu/apps
-
-                        if [ -d "fullstack_project" ] && [ ! -d "fullstack_project/.git" ]; then
-                           rm -rf fullstack_project
-                        fi
-
-                        if [ ! -d "fullstack_project" ]; then
-                           git clone https://github.com/kaviyarashugayu1997-maker/fullstack_project.git
-                        fi
-
-                        cd fullstack_project
-                        git fetch origin
-                        git checkout main
-                        git pull origin main
-
-                        cd backend
-
-                        
-                        docker stop myapp || true
-                        docker rm myapp || true
-                        docker rmi backend-image || true
-
     
-                        docker build -t backend-image .
-                        docker run -d -p 5001:5000 --name myapp backend-image
-EOF   
-                    """
-                }
-            }
-        }
+    agent any
+    
+    environment {
+  EC2_IP = "44.216.122.26"
     }
-
-    post {
-        success {
-            echo "DEPLOYMENT SUCCESSFUL"
-        }
-        failure {
-            echo "DEPLOYMENT FAILED"
-        }
+  stages 
+  {
+  stage('checkout code')
+  {
+    steps 
+    {
+      git branch = "main",
+      credientialId = "mern-stacks09233git",
+      url = "https://github.com/kaviyarashugayu1997-maker/fullstack_project.git"
     }
+  }
+stage('build') {
+  steps {
+      script
+      {
+          sh 'docker build -t image .'
+      }
+    
+  }
+}
 }
