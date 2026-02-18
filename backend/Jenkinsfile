@@ -16,14 +16,15 @@ pipeline {
 
         stage('Deploy to EC2') {
             steps {
-                shhagent(['mernstack-backend']) {
+                sshagent(['mernstack-backend']) {
                     sh """
+                    # Note: Using EOF without quotes so Jenkins replaces ${EC2_IP} correctly
                     ssh -o StrictHostKeyChecking=no ubuntu@${EC2_IP} << EOF
                         set -e
                         mkdir -p /home/ubuntu/apps
                         cd /home/ubuntu/apps
 
-                        if [-d "fullstack_project"] && [ -d "fullstack_project/.git" ]; 
+                        if [ -d "fullstack_project" ] && [ ! -d "fullstack_project/.git" ]; then
                            rm -rf fullstack_project
                         fi
 
@@ -38,18 +39,22 @@ pipeline {
 
                         cd backend
 
+                        # Clean up old container and image
                         docker stop myapp || true
                         docker rm myapp || true
                         docker rmi backend-image || true
 
+                        # Build the new image
                         docker build -t backend-image .
+
+                        # Run the container without the MONGO_URI env flag
                         docker run -d -p 5001:5000 --name myapp backend-image
 EOF
                     """
                 }
             }
         }
-    
+    }
 
     post {
         success {
